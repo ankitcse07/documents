@@ -82,3 +82,9 @@ Commiting local changes
      git add . 
      git commit
 
+Add alias names for public repository
+-------------------------------------
+git remote add documents ssh://git@github.com/ankitcse07/repo.git
+
+In above example, one can simply use name documents as shorthand for refering to 
+public repository 
