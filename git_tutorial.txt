@@ -1,5 +1,5 @@
 # Author-Ankit Garg,  Date-27-01-2015
-# This repository is created to learn the git by following tutorial from
+# Reference Documents:
 # http://git-scm.com/docs/user-manual.html
 
 
