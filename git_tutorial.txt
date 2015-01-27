@@ -1,6 +1,7 @@
 # Author-Ankit Garg,  Date-27-01-2015
 # Reference Documents:
 # http://git-scm.com/docs/user-manual.html
+# https://help.github.com/articles/generating-ssh-keys
 
 
 Creating, deleting, and modifying branches
@@ -88,3 +89,17 @@ git remote add documents ssh://git@github.com/ankitcse07/repo.git
 
 In above example, one can simply use name documents as shorthand for refering to 
 public repository 
+
+
+Generate SSH key
+----------------
+In order to prevent github to ask for username and password every time user 
+does push into public repository, one can create SSH keys for the trusted computer
+from where push will be done into repository. Go through the steps described in
+following page:
+      https://help.github.com/articles/generating-ssh-keys
+
+Make sure to use following url in order to have ssh access instead of https which
+will always query for password
+       git remote add documents git@github.com:<username>/<repository>.git
+
