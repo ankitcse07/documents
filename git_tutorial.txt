@@ -48,6 +48,19 @@ Updating a repository with git fetch
   found in the original repository. It will not touch any of your own branches—not 
   even the "master" branch that was created for you on clone.
 
+Fetching branches from other repositories
+===========================================
+
+You can also track branches from repositories other than the one you cloned from, using git-remote[1]:
+
+$ git remote add staging git://git.kernel.org/.../gregkh/staging.git
+$ git fetch staging
+...
+From git://git.kernel.org/pub/scm/linux/kernel/git/gregkh/staging
+ * [new branch]      master     -> staging/master
+ * [new branch]      staging-linus -> staging/staging-linus
+ * [new branch]      staging-next -> staging/staging-next
+
 
 Commiting local changes
 =======================
