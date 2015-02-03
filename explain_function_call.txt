@@ -1,0 +1,147 @@
+Following document will explain how any function call is made using stack
+-------------------------------------------------------------------------
+
+
+Stack area part of program memory can be very handy in making function calls.
+Everytime time function call is made, stack frame is prepared and eip pointer
+jumps to start of function address.  Consider following small example 
+
+void func(int i)
+{
+    printf("func called %d\n", i);
+}
+ main(void)
+{
+    int i;
+    func(11111);
+    printf("Address of main = %x", main);
+    return 0;
+}
+
+Dump of assembler code for function main():
+   0x0804840f <+0>:     push   ebp
+   0x08048410 <+1>:     mov    ebp,esp
+   0x08048412 <+3>:     and    esp,0xfffffff0
+   0x08048415 <+6>:     sub    esp,0x10
+=> 0x08048418 <+9>:     mov    DWORD PTR [esp],0x2b67
+   0x0804841f <+16>:    call   0x80483f4 <func(int)>
+   0x08048424 <+21>:    mov    DWORD PTR [esp+0x4],0x804840f
+   0x0804842c <+29>:    mov    DWORD PTR [esp],0x8048520
+   0x08048433 <+36>:    call   0x8048310 <printf@plt>
+   0x08048438 <+41>:    mov    eax,0x0
+   0x0804843d <+46>:    leave
+   0x0804843e <+47>:    ret
+
+In above value 11111(0x2b67) at current pointer is pushed on the stack
+by directly editing the stack pointer esp.
+
+(gdb) x/xw $esp
+0xffffd530:     0x00773810
+(gdb) ni
+0x0804841f      12          func(11111);
+(gdb) x/xw $esp
+0xffffd530:     0x00002b67
+(gdb) x/xw $ebp
+0xffffd548:     0xffffd5a8
+(gdb) p $eip
+$1 = (void (*)(void)) 0x804841f <main()+16>
+
+If you see above esp is currently 0xffffd5a8 and stack only contains arguments
+to function 'func'.   Now call instruction is equivalent to following piece of 
+code:
+      push eip + 0x5
+      mov eip 0x80483f4  [ starting address for function 'func' ]
+
+(gdb) ni
+
+Breakpoint 3, func (i=11111) at until.cxx:5
+(gdb) x/4xw $esp
+0xffffd52c:     0x08048424      0x00002b67      0x08048450      0x00000000
+
+So You could see that call just pushed the next instruction address on the
+0x0804840d <+25>:    leave ==> This instruction will 
+0x0804840d <+25>:    leave ==> This instruction will 
+stack and updated the eip to function 'func' start address and jumped
+0x080483f4
+
+Dump of assembler code for function func(int):
+=> 0x080483f4 <+0>:     push   ebp
+   0x080483f5 <+1>:     mov    ebp,esp
+   0x080483f7 <+3>:     sub    esp,0x18
+   0x080483fa <+6>:     mov    eax,DWORD PTR [ebp+0x8]
+   0x080483fd <+9>:     mov    DWORD PTR [esp+0x4],eax
+   0x08048401 <+13>:    mov    DWORD PTR [esp],0x8048510
+   0x08048408 <+20>:    call   0x8048310 <printf@plt>
+   0x0804840d <+25>:    leave
+   0x0804840e <+26>:    ret
+
+0x080483f4 <+0>:  push   ebp  ==> current base pointer is pushed onto stack so that it can restored on return
+0x080483f5 <+1>:  mov    ebp,esp  ===> update ebp to current esp so that argument pushed onto stack can be 
+                                       accessed in function
+
+0x080483f7 <+3>:  sub    esp,0x18 ==> allocate some space on stack for local variables
+
+Execute function 'func'
+
+Dump of assembler code for function func(int):
+   0x080483f4 <+0>:     push   ebp
+   0x080483f5 <+1>:     mov    ebp,esp
+   0x080483f7 <+3>:     sub    esp,0x18
+   0x080483fa <+6>:     mov    eax,DWORD PTR [ebp+0x8]
+   0x080483fd <+9>:     mov    DWORD PTR [esp+0x4],eax
+   0x08048401 <+13>:    mov    DWORD PTR [esp],0x8048510
+   0x08048408 <+20>:    call   0x8048310 <printf@plt>
+=> 0x0804840d <+25>:    leave
+   0x0804840e <+26>:    ret
+End of assembler dump.
+(gdb) x/4xw $esp + 0x18
+0xffffd528:     0xffffd548      0x08048424      0x00002b67      0x08048450
+(gdb) p $ebp
+$2 = (void *) 0xffffd528
+
+As you could see that before executing leave instruction ebp is pointing to
+$esp + 0x18 (location on stack prior to growing stack for local variable). 
+After leave instruction ebp pointer will be restored to 0xffffd548 which was
+orginial ebp in main stack frame.
+
+gdb) ni
+0x0804840e      8       }
+(gdb) p $ebp
+$3 = (void *) 0xffffd548
+(gdb) x/4xw $esp
+0xffffd52c:     0x08048424      0x00002b67      0x08048450      0x00000000
+
+So leave instruction is equivalent to :
+       mov esp ebp
+       pop ebp
+
+=> 0x0804840e <+26>:    ret
+
+(gdb) x/4xw $esp
+0xffffd52c:     0x08048424      0x00002b67      0x08048450      0x00000000
+(gdb) p $eip
+$4 = (void (*)(void)) 0x804840e <func(int)+26>
+(gdb) ni
+main () at until.cxx:13
+13          printf("Address of main = %x", main);
+(gdb) p $eip
+$5 = (void (*)(void)) 0x8048424 <main()+21>
+(gdb) x/4xw $esp
+0xffffd530:     0x00002b67      0x08048450      0x00000000      0x008d9ff4
+
+       
+So Ret instruction is equivalent to:
+       pop eip
+
+Hence in this way stack becomes very handy in making function calls
+
+Conclusion
+----------    
+The EBP register—sometimes called the frame pointer (FP) or local base (LB) pointer—is used 
+to reference localfunction variables in the current stack frame.
+Each stack frame contains the parameters to the function, its local variables, and two pointers 
+that are necessary to put things back the way they were: the saved frame pointer (SFP)(current frame pointer) 
+and the return address. The SFP is used to restore EBP to its previous value, and
+the return address is used to restore EIP to the next instruction found after the
+function call. This restores the functional context of the previous stack frame.
+
